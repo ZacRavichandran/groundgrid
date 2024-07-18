@@ -105,7 +105,7 @@ add_dependencies(${PROJECT_NAME}_lib
 )
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_lib
+target_link_libraries(${PROJECT_NAME}_lib 
     ${catkin_LIBRARIES}
 )
 
@@ -149,11 +149,19 @@ add_executable(${PROJECT_NAME}_node
     src/GroundGridNode.cpp
 )
 
+add_executable(obstacle_pub_node
+    src/ObstaclePub.cpp
+)
+
 add_dependencies(${PROJECT_NAME}_node
     ${PROJECT_NAME}_nodelet
 )
 
 target_link_libraries(${PROJECT_NAME}_node
+    ${catkin_LIBRARIES}
+)
+
+target_link_libraries(obstacle_pub_node
     ${catkin_LIBRARIES}
 )
 

@@ -67,6 +67,8 @@ class GroundGrid {
     void initGroundGrid(const nav_msgs::OdometryConstPtr &inOdom);
     std::shared_ptr<grid_map::GridMap> update(const nav_msgs::OdometryConstPtr& inOdom);
 
+    bool setFrames(const std::string &source_frame, const std::string & target_frame);
+
     const float mResolution = .33f;
     const float mDimension = 120.0f;
 
@@ -82,5 +84,8 @@ class GroundGrid {
     std::shared_ptr<grid_map::GridMap> mMap_ptr;
     geometry_msgs::TransformStamped mTfPosition, mTfLux, mTfUtm, mTfMap;
     geometry_msgs::PoseWithCovarianceStamped mLastPose;
+
+    std::string source_frame_;
+    std::string target_frame_;
 };
 }

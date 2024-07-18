@@ -101,6 +101,33 @@ class GroundGridNodelet : public nodelet::Nodelet {
 
         // input point cloud
         points_sub_ = nh.subscribe("/sensors/velodyne_points", 1, &groundgrid::GroundGridNodelet::points_callback, this);
+
+        // params 
+
+
+        // nh.param<std::string>("~source_frame", source_frame, "base_link");
+        if (! pnh.getParam("source_frame", source_frame))
+            source_frame = "base_link";
+
+        if (! pnh.getParam("target_frame", target_frame))
+            target_frame = "map";
+            
+        // source_frame = "husky/base_link";
+        // target_frame = "world";
+        // sensor_frame = "husky/lidar_points";
+ 
+        source_frame = "base_link";
+        target_frame = "map";
+        sensor_frame = "os_sensor";
+
+        ROS_WARN("Got source frame %s and target %s", source_frame.c_str(), target_frame.c_str());
+
+        groundgrid_->setFrames(source_frame.c_str(), target_frame.c_str());
+
+
+        // std::string source_frame = nh.getParam("~source_frame", "map");
+        // std::string source_frame = nh.getParam("~target_frame", "base_link");
+ 
    }
 
    protected:
@@ -129,12 +156,15 @@ class GroundGridNodelet : public nodelet::Nodelet {
 
         try{
             //mTfBuffer.canTransform("base_link", "map", cloud_msg->header.stamp, ros::Duration(0.0));
-            mapToBaseTransform = mTfBuffer.lookupTransform("map", "base_link", cloud_msg->header.stamp, ros::Duration(0.0));
+            ROS_WARN("trying to find transform to %s from %s", target_frame.c_str(), source_frame.c_str());
+            mapToBaseTransform = mTfBuffer.lookupTransform(target_frame.c_str(), source_frame.c_str(), cloud_msg->header.stamp, ros::Duration(0.1));
+            ROS_WARN("passed first transform");
             //mTfBuffer.canTransform(cloud_msg->header.frame_id, "map", cloud_msg->header.stamp, ros::Duration(0.0));
-            cloudOriginTransform = mTfBuffer.lookupTransform("map", "velodyne", cloud_msg->header.stamp, ros::Duration(0.0));
+            cloudOriginTransform = mTfBuffer.lookupTransform(target_frame.c_str(), sensor_frame, cloud_msg->header.stamp, ros::Duration(0.1));
+            // os_sensor
         }
         catch (tf2::TransformException &ex) {
-            ROS_WARN("Received point cloud but transforms are not available: %s",ex.what());
+            ROS_WARN("(updated) Received point cloud but transforms are not available: %s",ex.what());
             return;
         }
 
@@ -149,17 +179,17 @@ class GroundGridNodelet : public nodelet::Nodelet {
         tf2::doTransform(origin, origin, cloudOriginTransform);
 
         // Transform cloud into map coordinate system
-        if(cloud_msg->header.frame_id != "map"){
+        if(cloud_msg->header.frame_id != target_frame.c_str()){
             // Transform to map
             geometry_msgs::TransformStamped transformStamped;
             pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr transformed_cloud(new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
             transformed_cloud->header = cloud->header;
-            transformed_cloud->header.frame_id = "map";
+            transformed_cloud->header.frame_id = target_frame.c_str();
             transformed_cloud->points.reserve(cloud->points.size());
 
             try{
-                mTfBuffer.canTransform("map", cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.0));
-                transformStamped = mTfBuffer.lookupTransform("map", cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.0));
+                mTfBuffer.canTransform(target_frame.c_str(), cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.0));
+                transformStamped = mTfBuffer.lookupTransform(target_frame.c_str(), cloud_msg->header.frame_id, cloud_msg->header.stamp, ros::Duration(0.0));
             }
             catch (tf2::TransformException &ex) {
                 ROS_WARN("Failed to get map transform for point cloud transformation: %s",ex.what());
@@ -168,7 +198,7 @@ class GroundGridNodelet : public nodelet::Nodelet {
 
             geometry_msgs::PointStamped psIn;
             psIn.header = cloud_msg->header;
-            psIn.header.frame_id = "map";
+            psIn.header.frame_id = target_frame.c_str();
 
             for(const auto& point : cloud->points){
                 psIn.point.x = point.x;
@@ -199,7 +229,7 @@ class GroundGridNodelet : public nodelet::Nodelet {
         pcl::toROSMsg(*(ground_segmentation_.filter_cloud(cloud, origin_pclPoint, mapToBaseTransform, *map_ptr_)), cloud_msg_out);
 
         cloud_msg_out.header = cloud_msg->header;
-        cloud_msg_out.header.frame_id = "map";
+        cloud_msg_out.header.frame_id = target_frame.c_str();
         filtered_cloud_pub_.publish(cloud_msg_out);
         end = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed_seconds = end-start2;
@@ -275,14 +305,14 @@ class GroundGridNodelet : public nodelet::Nodelet {
                 geometry_msgs::TransformStamped baseToUtmTransform;
 
                 try{
-                    baseToUtmTransform = mTfBuffer.lookupTransform("utm", "base_link", stamp, ros::Duration(0.0));
+                    baseToUtmTransform = mTfBuffer.lookupTransform("utm", source_frame.c_str(), stamp, ros::Duration(0.0));
                 }
                 catch (tf2::TransformException &ex) {
                     ROS_WARN("%s",ex.what());
                     return;
                 }
                 geometry_msgs::PointStamped ps;
-                ps.header.frame_id = "base_link";
+                ps.header.frame_id = source_frame.c_str();
                 ps.header.stamp = stamp;
                 tf2::doTransform(ps, ps, baseToUtmTransform);
 
@@ -327,6 +357,11 @@ class GroundGridNodelet : public nodelet::Nodelet {
     /// tf stuff
     tf2_ros::Buffer mTfBuffer;
     tf2_ros::TransformListener mTfListener;
+
+    std::string source_frame;
+    std::string target_frame;
+    std::string sensor_frame;
+
 };
 }
 

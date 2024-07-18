@@ -79,6 +79,13 @@ void GroundGrid::initGroundGrid(const nav_msgs::OdometryConstPtr &inOdom)
     mLastPose = odomPose;
 }
 
+bool GroundGrid::setFrames(const std::string &source_frame, const std::string & target_frame)
+{
+    source_frame_ = source_frame;
+    target_frame_ = target_frame;
+    return true;
+}
+
 
 std::shared_ptr<grid_map::GridMap> GroundGrid::update(const nav_msgs::OdometryConstPtr &inOdom)
 {
@@ -100,7 +107,7 @@ std::shared_ptr<grid_map::GridMap> GroundGrid::update(const nav_msgs::OdometryCo
     static geometry_msgs::TransformStamped base_to_map;
 
     try{
-        base_to_map = mTfBuffer.lookupTransform("base_link", "map", inOdom->header.stamp);
+        base_to_map = mTfBuffer.lookupTransform(source_frame_.c_str(),target_frame_.c_str(), inOdom->header.stamp);
     }
     catch (tf2::LookupException& e)
     {
@@ -112,10 +119,14 @@ std::shared_ptr<grid_map::GridMap> GroundGrid::update(const nav_msgs::OdometryCo
         // can happen when new transform has not yet been published, we can use the old one instead
         ROS_DEBUG("need to extrapolate a transform? -> error: %s", e.what());
     }
+    catch (tf2::ConnectivityException& e)
+    {
+        ROS_WARN("Trees not connected");
+    }
 
     geometry_msgs::PointStamped ps;
     ps.header = inOdom->header;
-    ps.header.frame_id = "map";
+    ps.header.frame_id = target_frame_.c_str();
     grid_map::Position pos;
 
     for(auto region : damage){
