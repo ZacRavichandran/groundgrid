@@ -156,9 +156,7 @@ class GroundGridNodelet : public nodelet::Nodelet {
 
         try{
             //mTfBuffer.canTransform("base_link", "map", cloud_msg->header.stamp, ros::Duration(0.0));
-            ROS_WARN("trying to find transform to %s from %s", target_frame.c_str(), source_frame.c_str());
             mapToBaseTransform = mTfBuffer.lookupTransform(target_frame.c_str(), source_frame.c_str(), cloud_msg->header.stamp, ros::Duration(0.1));
-            ROS_WARN("passed first transform");
             //mTfBuffer.canTransform(cloud_msg->header.frame_id, "map", cloud_msg->header.stamp, ros::Duration(0.0));
             cloudOriginTransform = mTfBuffer.lookupTransform(target_frame.c_str(), sensor_frame, cloud_msg->header.stamp, ros::Duration(0.1));
             // os_sensor
