@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
-    <arg name="point_cloud_topic" default="/sensors/velodyne_points" doc="Point cloud topic to subscribe to" />
+    <arg name="point_cloud_topic" default="/outster/points" doc="Point cloud topic to subscribe to" />
     <arg name="use_nodelets"    default="$(optenv USE_NODELETS false)" />
     <arg name="nodelet_manager" default="$(optenv NODELET_MANAGER core_nodelet_manager)" />
     <arg name="odom_topic"      default="/Odometry"/>

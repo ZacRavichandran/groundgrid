@@ -12,7 +12,8 @@ public:
     {
         // Subscribers and publishers
         cloud_sub_ = nh.subscribe("/groundgrid/segmented_cloud", 1, &PointCloudFilter::cloudCallback, this);
-        cloud_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/groundgrid/obstacle_cloud", 1);
+        obstacle_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/groundgrid/obstacle_cloud", 1);
+        ground_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/groundgrid/ground_cloud", 1);
     }
 
     void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input)
@@ -22,25 +23,36 @@ public:
         pcl::fromROSMsg(*input, *cloud);
 
         // Create a new filtered cloud
-        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr obstacle_cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
 
         for (auto& point : cloud->points) {
             // Check if the point is approximately purple
             if (isObstacle(point)) {
-                cloud_filtered->points.push_back(point);
+                obstacle_cloud_filtered->points.push_back(point);
+            } else {
+                ground_cloud_filtered->points.push_back(point);
             }
         }
 
         // Convert to ROS data type and publish
-        sensor_msgs::PointCloud2 output;
-        pcl::toROSMsg(*cloud_filtered, output);
-        output.header = input->header;
-        cloud_pub_.publish(output);
+        sensor_msgs::PointCloud2 obstacle_output;
+        pcl::toROSMsg(*obstacle_cloud_filtered, obstacle_output);
+        obstacle_output.header = input->header;
+        obstacle_pub_.publish(obstacle_output);
+
+        // now publish ground
+        sensor_msgs::PointCloud2 ground_output;
+        pcl::toROSMsg(*ground_cloud_filtered, ground_output);
+        ground_output.header = input->header;
+        ground_pub_.publish(ground_output);
     }
 
 private:
     ros::Subscriber cloud_sub_;
-    ros::Publisher cloud_pub_;
+    ros::Publisher obstacle_pub_;
+    ros::Publisher ground_pub_;
+
 
     bool isObstacle(const pcl::PointXYZI& point)
     {
