@@ -112,13 +112,13 @@ class GroundGridNodelet : public nodelet::Nodelet {
         if (! pnh.getParam("target_frame", target_frame))
             target_frame = "map";
             
-        // source_frame = "husky/base_link";
-        // target_frame = "world";
-        // sensor_frame = "husky/lidar_points";
+        source_frame = "husky/base_link";
+        target_frame = "world";
+        sensor_frame = "husky/lidar_points";
  
-        source_frame = "base_link";
-        target_frame = "map";
-        sensor_frame = "os_sensor";
+        // source_frame = "base_link";
+        // target_frame = "map";
+        // sensor_frame = "os_sensor";
 
         ROS_WARN("Got source frame %s and target %s", source_frame.c_str(), target_frame.c_str());
 
