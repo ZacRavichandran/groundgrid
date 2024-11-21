@@ -1,3 +1,5 @@
+#include <boost/format.hpp>
+
 #include <ros/ros.h>
 
 #include <sensor_msgs/PointCloud2.h>
@@ -8,12 +10,20 @@
 
 class PointCloudFilter {
 public:
-    PointCloudFilter(ros::NodeHandle& nh)
+    PointCloudFilter(ros::NodeHandle& nh, ros::NodeHandle& nh_)
     {
         // Subscribers and publishers
-        cloud_sub_ = nh.subscribe("/groundgrid/segmented_cloud", 1, &PointCloudFilter::cloudCallback, this);
-        obstacle_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/groundgrid/obstacle_cloud", 1);
-        ground_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/groundgrid/ground_cloud", 1);
+        if (!nh_.getParam("ns", ns_))
+            ns_ = "/";
+
+        std::string cloud_sub_topic = (boost::format("%s/groundgrid/segmented_cloud") % ns_).str();
+        cloud_sub_ = nh.subscribe(cloud_sub_topic, 1, &PointCloudFilter::cloudCallback, this);
+
+        std::string obstacle_pub_topic = (boost::format("%s/groundgrid/obstacle_cloud") % ns_).str();
+        obstacle_pub_ = nh.advertise<sensor_msgs::PointCloud2>(obstacle_pub_topic, 1);
+
+        std::string ground_pub_topic = (boost::format("%s/groundgrid/ground_cloud") % ns_).str();
+        ground_pub_ = nh.advertise<sensor_msgs::PointCloud2>(ground_pub_topic, 1);
     }
 
     void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input)
@@ -52,6 +62,7 @@ private:
     ros::Subscriber cloud_sub_;
     ros::Publisher obstacle_pub_;
     ros::Publisher ground_pub_;
+    std::string ns_;
 
 
     bool isObstacle(const pcl::PointXYZI& point)
@@ -76,7 +87,8 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "obstacle_pub");
     ros::NodeHandle nh;
-    PointCloudFilter filter(nh);
+    ros::NodeHandle nh_("~");
+    PointCloudFilter filter(nh, nh_);
     ros::spin();
     return 0;
 }

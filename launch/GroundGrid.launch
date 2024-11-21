@@ -1,5 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
+
+    <arg name="ns" default="/"/>
     <arg name="point_cloud_topic" default="/ouster/points" doc="Point cloud topic to subscribe to" />
     <arg name="use_nodelets"    default="$(optenv USE_NODELETS false)" />
     <arg name="nodelet_manager" default="$(optenv NODELET_MANAGER core_nodelet_manager)" />
@@ -56,6 +58,8 @@
 
     </node>
 
-    <node type="obstacle_pub_node" pkg="groundgrid" name="obstacle_pub_node" output="screen"/>
+    <node type="obstacle_pub_node" pkg="groundgrid" name="obstacle_pub_node" output="screen">
+        <param name="ns" value="$(arg ns)"/>
+    </node>
 
 </launch>
